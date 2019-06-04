@@ -30,6 +30,7 @@ class tetragon3d extends htmlElement{
     };
     this.motionData = {
       isAboutToStop: false,
+      angleWhenClicked: undefined,
       currentAngle: 0,
       targetAngle: undefined,
       move: true
@@ -243,6 +244,7 @@ class tetragon3d extends htmlElement{
         let direction = this.shouldChangeDirection();
         this.motionData.isAboutToStop = true;
         this.easing = this.computeEasing(direction);
+        this.motionData.angleWhenClicked = this.motionData.currentAngle;
 
         target.css('cursor', 'initial');
 
@@ -285,8 +287,9 @@ class tetragon3d extends htmlElement{
 
     if ( this.motionData.currentAngle < -10 && this.motionData.currentAngle > -20 && this.dynamicContent.willUpdate){
 
-      this.dynamicContent.content = this.dynamicContent.content +2;  //3/7/11...
+      this.dynamicContent.content = this.rotationSpeed > 0 ? this.dynamicContent.content +2 : this.dynamicContent.content;  //3/7/11...
       this.dynamicContent.willUpdate = false;
+
       $(this.faces[2]).text(`face ${this.dynamicContent.content}`);
       $(this.faces[3]).text(`face ${this.dynamicContent.content +1}`);
 
@@ -294,13 +297,15 @@ class tetragon3d extends htmlElement{
 
       this.dynamicContent.willUpdate = true
 
-    } else if ( this.motionData.currentAngle < -180 && this.motionData.currentAngle > -190 && this.dynamicContent.willUpdate ){
+    } else if ( this.motionData.currentAngle < -190 && this.motionData.currentAngle > -200 && this.dynamicContent.willUpdate ){
 
-      this.dynamicContent.content = this.dynamicContent.content +2; // 5/9/13...
+      this.dynamicContent.content = this.rotationSpeed > 0 ? this.dynamicContent.content +2 : this.dynamicContent.content; // 5/9/13...
       this.dynamicContent.willUpdate = false;
+
       $(this.faces[0]).text(`face ${this.dynamicContent.content}`);
       $(this.faces[1]).text(`face ${this.dynamicContent.content + 1}`);
-    } else if ( this.motionData.currentAngle < -190 && this.motionData.currentAngle > -200 && !this.dynamicContent.willUpdate){
+
+    } else if ( this.motionData.currentAngle < -200 && this.motionData.currentAngle > -210 && !this.dynamicContent.willUpdate){
 
       this.dynamicContent.willUpdate = true
     }
