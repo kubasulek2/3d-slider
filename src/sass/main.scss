@@ -1,0 +1,113 @@
+html, body{
+  margin: 0;
+  height: 100%;
+  width: 100%;
+}
+body {
+  perspective: 1000px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#viewport{
+  transform-style: preserve-3d;
+  position: relative;
+  width: 1000px;
+  height: 500px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+
+  #top-layer{
+    flex-shrink: 0;
+    position: relative;
+    width: 570px;
+    height: 570px;
+    //background: rosybrown;
+    transform: translateZ(-250px) rotateY(0deg);
+    transform-style: preserve-3d;
+
+
+
+
+    &>.face, &>.back-face{
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      //opacity: .8;
+      border-radius: 10px;
+      backface-visibility: hidden;
+      transition: transform 1s ease-in-out;
+    }
+
+    &>.face{
+      background: url("https://images.pexels.com/photos/163999/pexels-photo-163999.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940");
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 50px;
+      font-weight: 500;
+      font-family: Arial, Helvetica, sans-serif;
+      text-transform: uppercase;
+    }
+
+    #front{
+      transform: translateZ(285px) scale(.7);
+      &.focus{
+        transform: translateZ(285px) scale(1);
+      }
+    }
+    #right{
+      transform: translateX(285px) rotateY(90deg) scale(.7);
+      &.focus{
+        transform: translateX(285px) rotateY(90deg) scale(1);
+
+      }
+    }
+    #back{
+      transform: translateZ(-285px) rotateY(180deg) scale(.7);
+      &.focus{
+        transform: translateZ(-285px) rotateY(180deg) scale(1);
+
+      }
+    }
+    #left{
+      transform: translateX(-285px) rotateY(-90deg) scale(.7);
+      &.focus{
+        transform: translateX(-285px) rotateY(-90deg) scale(1);
+
+      }
+    }
+
+    &>.back-face{
+      background: #6b6b6b;
+
+      &.front{
+        transform: translateZ(285px) rotateY(180deg) scale(.7);
+      }
+      &.right{
+        transform: translateX(285px) rotateY(-90deg) scale(.7);
+      }
+      &.back{
+        transform: translateZ(-285px) rotateY(0deg) scale(.7);
+      }
+      &.left{
+        transform: translateX(-285px) rotateY(90deg) scale(.7);
+      }
+    }
+  }
+}
+
+@keyframes rotateTop {
+  from{
+    transform: translateZ(-250px) rotateY(0deg);
+  }
+  to{
+    transform: translateZ(-250px) rotateY(-360deg);
+  }
+}
+
