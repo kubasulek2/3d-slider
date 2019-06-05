@@ -1,3 +1,12 @@
+const
+  _rotationSpeed = Symbol('rotationSpeed'),
+  _clickedId = Symbol('clickedId'),
+  _easing = Symbol('easing'),
+  _speedMeasure = Symbol('speedMeasure'),
+  _motionData = Symbol('motionData'),
+  _dynamicContent = Symbol('dynamicContent');
+
+
 class htmlElement {
   constructor(element){
     this.element = element
@@ -13,64 +22,66 @@ class htmlElement {
   }
 }
 
-class tetragon3d extends htmlElement{
+
+class slider3d extends htmlElement{
   constructor(element ,speed){
     super(element);
+
     this.baseSpeed = speed > 1 ? 1 : speed;
-    this.rotationSpeed = speed > 1 ? 1 : speed;
-    this.clickedId = '';
     this.faces = this.element.children('.face');
-    this.easing = [];
-    this.speedMeasure = {
+
+    this[_rotationSpeed] = speed > 1 ? 1 : speed;
+    this[_clickedId] = '';
+    this[_easing] = [];
+    this[_speedMeasure] = {
       start: undefined,
       stop: undefined,
       lastMeasuredAngle: undefined,
       speedArr: [],
       avgSpeed: undefined
     };
-    this.motionData = {
+    this[_motionData] = {
       isAboutToStop: false,
       angleWhenClicked: undefined,
       currentAngle: 0,
       targetAngle: undefined,
       move: true
     };
-    this.dynamicContent = {
+    this[_dynamicContent] = {
       content: 1,
       willUpdate: true
     }
   }
   calculateEntryValues() {
-    this.speedMeasure.avgSpeed = (30 / ( this.rotationSpeed * 60 ) );
-
+    this[_speedMeasure].avgSpeed = (30 / ( this.baseSpeed * 60 ) );
   }
 
   animateElement() {
 
-    if ( !this.speedMeasure.avgSpeed ) this.calculateEntryValues();
+    if ( !this[_speedMeasure].avgSpeed ) this.calculateEntryValues();
 
-    if ( this.motionData.move ){
+    if ( this[_motionData].move ){
 
       let rotationSpeed = this.computeRotatingTime();
 
       this.computeAvgSpeed(rotationSpeed);
       this.updateContent();
 
-      if (this.easing.length !== 0) this.applyEasing();
+      if (this[_easing].length !== 0) this.applyEasing();
 
-      if(this.easing.length === 0 && this.rotationSpeed < this.baseSpeed) this.accelerate();
+      if(this[_easing].length === 0 && this[_rotationSpeed] < this.baseSpeed) this.accelerate();
 
 
-      this.motionData.currentAngle -= this.rotationSpeed;
-      this.motionData.currentAngle = this.motionData.currentAngle <= -360 ? 0 : this.motionData.currentAngle;
+      this[_motionData].currentAngle -= this[_rotationSpeed];
+      this[_motionData].currentAngle = this[_motionData].currentAngle <= -360 ? 0 : this[_motionData].currentAngle;
 
-      this.element.css( "transform", ` translateZ(-250px) rotateY(${this.motionData.currentAngle}deg)` );
+      this.element.css( "transform", ` translateZ(-250px) rotateY(${this[_motionData].currentAngle}deg)` );
 
       // targetAngle is set in click event, so after click event rotation will stop
 
-      if( Math.round(this.motionData.currentAngle) === this.motionData.targetAngle ){
-        this.motionData.move = false;
-        this.element.css( "transform", ` translateZ(-250px) rotateY(${this.motionData.targetAngle}deg)` )
+      if( Math.round(this[_motionData].currentAngle) === this[_motionData].targetAngle ){
+        this[_motionData].move = false;
+        this.element.css( "transform", ` translateZ(-250px) rotateY(${this[_motionData].targetAngle}deg)` )
       }
 
       window.requestAnimationFrame( ()=> this.animateElement() )
@@ -80,13 +91,40 @@ class tetragon3d extends htmlElement{
     }
   }
 
+  computeRotatingTime(){
+
+    let currentAngle = Math.abs( Math.floor(this[_motionData].currentAngle) );
+    let rotationTime;
+    let flag = !(currentAngle % 31);
+
+    // return if current angle haven't change from last measurement
+    if (this[_speedMeasure].lastMeasuredAngle === currentAngle){
+      return null;
+    }
+
+
+    this[_speedMeasure].lastMeasuredAngle = currentAngle;
+
+
+    if(this[_speedMeasure].measureAngle === currentAngle){
+      this[_speedMeasure].stop = new Date();
+      rotationTime =  (this[_speedMeasure].stop - this[_speedMeasure].start)/1000;
+      return rotationTime;
+    }
+    //every 31 degrees start time, and angle, at which speed will be measured, are set
+    if ( flag ) {
+      this[_speedMeasure].measureAngle = this[_motionData].currentAngle === 360 ? 30 : currentAngle + 30;
+      this[_speedMeasure].start = new Date();
+    }
+    return null
+  }
 
   computeEasing(direction){
-    let distance = Math.abs( Math.abs(this.motionData.targetAngle) - Math.abs(this.motionData.currentAngle) );
+    let distance = Math.abs( Math.abs(this[_motionData].targetAngle) - Math.abs(this[_motionData].currentAngle) );
 
     let steps = distance < 20 ? 5 : 10;
     let threshold, delay, speed, speedChange, startEase, slowAngles, easing = [];
-    let baseSpeed = this.rotationSpeed;
+    let baseSpeed = this[_rotationSpeed];
 
     switch (true) {
       case distance <= 10 :
@@ -122,7 +160,7 @@ class tetragon3d extends htmlElement{
     threshold = ( distance - delay ) / steps;
     speedChange = baseSpeed/steps;
     speed = baseSpeed;
-    startEase = direction === "forth" ? this.motionData.currentAngle - delay : this.motionData.currentAngle + delay;
+    startEase = direction === "forth" ? this[_motionData].currentAngle - delay : this[_motionData].currentAngle + delay;
     slowAngles = startEase;
 
     threshold = direction === "forth" ? -threshold : threshold;
@@ -145,49 +183,23 @@ class tetragon3d extends htmlElement{
   }
   applyEasing(){
 
-    this.easing.forEach(  value => {
-      if ( Math.round(this.motionData.currentAngle) === value[0] )
-        this.rotationSpeed = value[1];
+    this[_easing].forEach(  value => {
+      if ( Math.round(this[_motionData].currentAngle) === value[0] )
+        this[_rotationSpeed] = value[1];
     })
   }
-  computeRotatingTime(){
 
-    let currentAngle = Math.abs( Math.floor(this.motionData.currentAngle) );
-    let rotationTime;
-    let flag = !(currentAngle % 31);
-
-    // return if current angle haven't change from last measurement
-    if (this.speedMeasure.lastMeasuredAngle === currentAngle){
-      return null;
-    }
-
-
-    this.speedMeasure.lastMeasuredAngle = currentAngle;
-
-
-    if(this.speedMeasure.measureAngle === currentAngle){
-      this.speedMeasure.stop = new Date();
-      rotationTime =  (this.speedMeasure.stop - this.speedMeasure.start)/1000;
-      return rotationTime;
-    }
-    //every 31 degrees start time, and angle, at which speed will be measured, are set
-    if ( flag ) {
-      this.speedMeasure.measureAngle = this.motionData.currentAngle === 360 ? 30 : currentAngle + 30;
-      this.speedMeasure.start = new Date();
-    }
-    return null
-  }
   computeAvgSpeed(arg){
 
     if ( arg === null ) return;
 
-    this.speedMeasure.speedArr.push(arg);
+    this[_speedMeasure].speedArr.push(arg);
 
-    if ( this.speedMeasure.speedArr.length > 4 ){
-      this.speedMeasure.speedArr.shift();
+    if ( this[_speedMeasure].speedArr.length > 4 ){
+      this[_speedMeasure].speedArr.shift();
 
     }
-    this.speedMeasure.avgSpeed = this.speedMeasure.speedArr.reduce((a,b) => a + b, 0) / this.speedMeasure.speedArr.length;
+    this[_speedMeasure].avgSpeed = this[_speedMeasure].speedArr.reduce((a,b) => a + b, 0) / this[_speedMeasure].speedArr.length;
 
   }
 
@@ -197,29 +209,29 @@ class tetragon3d extends htmlElement{
 
     switch (targetId) {
       case "front":
-        this.motionData.targetAngle = 0;
+        this[_motionData].targetAngle = 0;
         break;
       case "right":
-        this.motionData.targetAngle = -90;
+        this[_motionData].targetAngle = -90;
         break;
       case "back":
-        this.motionData.targetAngle = -180;
+        this[_motionData].targetAngle = -180;
         break;
       case "left":
-        this.motionData.targetAngle = -270;
+        this[_motionData].targetAngle = -270;
         break;
     }
   }
 
   shouldChangeDirection(){
     let direction = "forth";
-    if( this.motionData.targetAngle === 0 ){
+    if( this[_motionData].targetAngle === 0 ){
       //if clicked in front plane, which set target angle to 0 , must have special check, cause current angle is always lesser than 0
-      this.rotationSpeed = this.motionData.currentAngle < -180 ? this.rotationSpeed : -this.rotationSpeed;
-      direction = this.motionData.currentAngle < -180 ? "forth" :  "back"
-    } else if ( this.motionData.currentAngle < this.motionData.targetAngle ){
+      this[_rotationSpeed] = this[_motionData].currentAngle < -180 ? this[_rotationSpeed] : -this[_rotationSpeed];
+      direction = this[_motionData].currentAngle < -180 ? "forth" :  "back"
+    } else if ( this[_motionData].currentAngle < this[_motionData].targetAngle ){
       //all the other cases
-      this.rotationSpeed = -this.rotationSpeed;
+      this[_rotationSpeed] = -this[_rotationSpeed];
       direction = "back"
     }
     return direction
@@ -227,31 +239,31 @@ class tetragon3d extends htmlElement{
 
   animatePlane(){
 
-    let myPlane = this.faces.filter( ( i,el ) => $(el).attr('id') === this.clickedId);
+    let myPlane = this.faces.filter( ( i,el ) => $(el).attr('id') === this[_clickedId]);
 
     myPlane.addClass("focus")
   }
 
   planeClickEvent(){
     this.faces.on( 'click', (e)=> {
-      if( ! this.motionData.isAboutToStop ){
+      if( ! this[_motionData].isAboutToStop ){
 
         let target = $(e.currentTarget);
         e.stopPropagation();
         this.getTargetAngle(e);
-        this.clickedId = e.target.id;
+        this[_clickedId] = e.target.id;
 
         let direction = this.shouldChangeDirection();
-        this.motionData.isAboutToStop = true;
-        this.easing = this.computeEasing(direction);
-        this.motionData.angleWhenClicked = this.motionData.currentAngle;
+        this[_motionData].isAboutToStop = true;
+        this[_easing] = this.computeEasing(direction);
+        this[_motionData].angleWhenClicked = this[_motionData].currentAngle;
 
         target.css('cursor', 'initial');
 
         $('body')
           .css('cursor', 'pointer')
           .one('click', (e) => {
-            this.motionData.isAboutToStop = false;
+            this[_motionData].isAboutToStop = false;
             target.css('cursor', 'pointer');
             $(e.currentTarget).css('cursor', 'initial');
             this.restoreAnimation();
@@ -265,13 +277,13 @@ class tetragon3d extends htmlElement{
 
   restoreAnimation(){
     let targetPlane = this.faces
-      .filter( ( i,el ) => $(el).attr('id') === this.clickedId);
+      .filter( ( i,el ) => $(el).attr('id') === this[_clickedId]);
       targetPlane.removeClass("focus");
-    this.easing = [];
-    this.motionData.move = true;
-    this.motionData.targetAngle = undefined;
-    this.clickedId = '';
-    this.rotationSpeed = this.rotationSpeed < 0 ? -this.rotationSpeed : this.rotationSpeed;
+    this[_easing] = [];
+    this[_motionData].move = true;
+    this[_motionData].targetAngle = undefined;
+    this[_clickedId] = '';
+    this[_rotationSpeed] = this[_rotationSpeed] < 0 ? -this[_rotationSpeed] : this[_rotationSpeed];
 
     targetPlane.one('transitionend',  () => {
       this.animateElement();
@@ -280,41 +292,41 @@ class tetragon3d extends htmlElement{
   }
 
   accelerate(){
-    this.rotationSpeed =  parseFloat( ( this.rotationSpeed + 0.005 ).toFixed(3) );
+    this[_rotationSpeed] =  parseFloat( ( this[_rotationSpeed] + 0.005 ).toFixed(3) );
   }
 
   updateContent(){
 
-    if ( this.motionData.currentAngle < -10 && this.motionData.currentAngle > -20 && this.dynamicContent.willUpdate){
+    if ( this[_motionData].currentAngle < -10 && this[_motionData].currentAngle > -20 && this[_dynamicContent].willUpdate){
 
-      this.dynamicContent.content = this.rotationSpeed > 0 ? this.dynamicContent.content +2 : this.dynamicContent.content;  //3/7/11...
-      this.dynamicContent.willUpdate = false;
+      this[_dynamicContent].content = this[_rotationSpeed] > 0 ? this[_dynamicContent].content +2 : this[_dynamicContent].content;  //3/7/11...
+      this[_dynamicContent].willUpdate = false;
 
-      $(this.faces[2]).text(`face ${this.dynamicContent.content}`);
-      $(this.faces[3]).text(`face ${this.dynamicContent.content +1}`);
+      $(this.faces[2]).text(`face ${this[_dynamicContent].content}`);
+      $(this.faces[3]).text(`face ${this[_dynamicContent].content +1}`);
 
-    } else if (this.motionData.currentAngle < -20 && this.motionData.currentAngle > -30 && !this.dynamicContent.willUpdate){
+    } else if (this[_motionData].currentAngle < -20 && this[_motionData].currentAngle > -30 && !this[_dynamicContent].willUpdate){
 
-      this.dynamicContent.willUpdate = true
+      this[_dynamicContent].willUpdate = true
 
-    } else if ( this.motionData.currentAngle < -190 && this.motionData.currentAngle > -200 && this.dynamicContent.willUpdate ){
+    } else if ( this[_motionData].currentAngle < -190 && this[_motionData].currentAngle > -200 && this[_dynamicContent].willUpdate ){
 
-      this.dynamicContent.content = this.rotationSpeed > 0 ? this.dynamicContent.content +2 : this.dynamicContent.content; // 5/9/13...
-      this.dynamicContent.willUpdate = false;
+      this[_dynamicContent].content = this[_rotationSpeed] > 0 ? this[_dynamicContent].content +2 : this[_dynamicContent].content; // 5/9/13...
+      this[_dynamicContent].willUpdate = false;
 
-      $(this.faces[0]).text(`face ${this.dynamicContent.content}`);
-      $(this.faces[1]).text(`face ${this.dynamicContent.content + 1}`);
+      $(this.faces[0]).text(`face ${this[_dynamicContent].content}`);
+      $(this.faces[1]).text(`face ${this[_dynamicContent].content + 1}`);
 
-    } else if ( this.motionData.currentAngle < -200 && this.motionData.currentAngle > -210 && !this.dynamicContent.willUpdate){
+    } else if ( this[_motionData].currentAngle < -200 && this[_motionData].currentAngle > -210 && !this[_dynamicContent].willUpdate){
 
-      this.dynamicContent.willUpdate = true
+      this[_dynamicContent].willUpdate = true
     }
   }
 
 
 }
 
-let myElement = new tetragon3d($('#top-layer'),.5);
+let myElement = new slider3d($('#top-layer'),1);
 
 $(() => {
 
