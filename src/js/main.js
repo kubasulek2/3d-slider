@@ -1,10 +1,21 @@
+//defining symbols for private members
 const
   _rotationSpeed = Symbol('rotationSpeed'),
   _clickedId = Symbol('clickedId'),
   _easing = Symbol('easing'),
   _speedMeasure = Symbol('speedMeasure'),
   _motionData = Symbol('motionData'),
-  _dynamicContent = Symbol('dynamicContent');
+  _dynamicContent = Symbol('dynamicContent'),
+  _calculateEntryValues = Symbol('calculateEntryValues'),
+  _computeEasing = Symbol('computeEasing'),
+  _computeRotatingTime = Symbol('_computeRotatingTime'),
+  _applyEasing = Symbol('applyEasing'),
+  _computeAvgSpeed = Symbol('computeAvgSpeed'),
+  _getTargetAngle = Symbol('getTargetAngle'),
+  _shouldChangeDirection = Symbol('shouldChangeDirection'),
+  _restoreAnimation = Symbol('restoreAnimation'),
+  _accelerate = Symbol('accelerate'),
+  _updateContent = Symbol('updateContent');
 
 
 class htmlElement {
@@ -52,24 +63,21 @@ class slider3d extends htmlElement{
       willUpdate: true
     }
   }
-  calculateEntryValues() {
-    this[_speedMeasure].avgSpeed = (30 / ( this.baseSpeed * 60 ) );
-  }
 
   animateElement() {
 
-    if ( !this[_speedMeasure].avgSpeed ) this.calculateEntryValues();
+    if ( !this[_speedMeasure].avgSpeed ) this[_calculateEntryValues]();
 
     if ( this[_motionData].move ){
 
-      let rotationSpeed = this.computeRotatingTime();
+      let rotationSpeed = this[_computeRotatingTime]();
 
-      this.computeAvgSpeed(rotationSpeed);
-      this.updateContent();
+      this[_computeAvgSpeed](rotationSpeed);
+      this[_updateContent]();
 
-      if (this[_easing].length !== 0) this.applyEasing();
+      if (this[_easing].length !== 0) this[_applyEasing]();
 
-      if(this[_easing].length === 0 && this[_rotationSpeed] < this.baseSpeed) this.accelerate();
+      if(this[_easing].length === 0 && this[_rotationSpeed] < this.baseSpeed) this[_accelerate]();
 
 
       this[_motionData].currentAngle -= this[_rotationSpeed];
@@ -87,11 +95,53 @@ class slider3d extends htmlElement{
       window.requestAnimationFrame( ()=> this.animateElement() )
     }
     else {
-      this.animatePlane();
+      this.animateFace();
     }
   }
 
-  computeRotatingTime(){
+  animateFace(){
+
+    let myPlane = this.faces.filter( ( i,el ) => $(el).attr('id') === this[_clickedId]);
+
+    myPlane.addClass("focus")
+  }
+
+  faceClickEvent(){
+
+    this.faces.on( 'click', (e)=> {
+
+      if( ! this[_motionData].isAboutToStop ){
+
+        let target = $(e.currentTarget);
+        e.stopPropagation();
+        this[_getTargetAngle](e);
+        this[_clickedId] = e.target.id;
+
+        let direction = this[_shouldChangeDirection]();
+
+        this[_motionData].isAboutToStop = true;
+        this[_easing] = this[_computeEasing](direction);
+        this[_motionData].angleWhenClicked = this[_motionData].currentAngle;
+
+        target.css('cursor', 'initial');
+
+        $('body')
+          .css('cursor', 'pointer')
+          .one('click', (e) => {
+            this[_motionData].isAboutToStop = false;
+            target.css('cursor', 'pointer');
+            $(e.currentTarget).css('cursor', 'initial');
+            this[_restoreAnimation]();
+          });
+      }
+    })
+  }
+
+  [_calculateEntryValues]() {
+    this[_speedMeasure].avgSpeed = (30 / ( this.baseSpeed * 60 ) );
+  }
+
+  [_computeRotatingTime](){
 
     let currentAngle = Math.abs( Math.floor(this[_motionData].currentAngle) );
     let rotationTime;
@@ -119,7 +169,7 @@ class slider3d extends htmlElement{
     return null
   }
 
-  computeEasing(direction){
+  [_computeEasing](direction){
     let distance = Math.abs( Math.abs(this[_motionData].targetAngle) - Math.abs(this[_motionData].currentAngle) );
 
     let steps = distance < 20 ? 5 : 10;
@@ -181,7 +231,7 @@ class slider3d extends htmlElement{
     return easing;
 
   }
-  applyEasing(){
+  [_applyEasing](){
 
     this[_easing].forEach(  value => {
       if ( Math.round(this[_motionData].currentAngle) === value[0] )
@@ -189,7 +239,7 @@ class slider3d extends htmlElement{
     })
   }
 
-  computeAvgSpeed(arg){
+  [_computeAvgSpeed](arg){
 
     if ( arg === null ) return;
 
@@ -203,7 +253,7 @@ class slider3d extends htmlElement{
 
   }
 
-  getTargetAngle (e) {
+  [_getTargetAngle](e) {
 
     const targetId = $(e.target).attr("id");
 
@@ -223,12 +273,15 @@ class slider3d extends htmlElement{
     }
   }
 
-  shouldChangeDirection(){
+  [_shouldChangeDirection](){
     let direction = "forth";
     if( this[_motionData].targetAngle === 0 ){
       //if clicked in front plane, which set target angle to 0 , must have special check, cause current angle is always lesser than 0
-      this[_rotationSpeed] = this[_motionData].currentAngle < -180 ? this[_rotationSpeed] : -this[_rotationSpeed];
+
+      this[_rotationSpeed] = this[_motionData].currentAngle < -180 ? this[_rotationSpeed] : - this[_rotationSpeed];
+
       direction = this[_motionData].currentAngle < -180 ? "forth" :  "back"
+
     } else if ( this[_motionData].currentAngle < this[_motionData].targetAngle ){
       //all the other cases
       this[_rotationSpeed] = -this[_rotationSpeed];
@@ -237,45 +290,7 @@ class slider3d extends htmlElement{
     return direction
   }
 
-  animatePlane(){
-
-    let myPlane = this.faces.filter( ( i,el ) => $(el).attr('id') === this[_clickedId]);
-
-    myPlane.addClass("focus")
-  }
-
-  planeClickEvent(){
-    this.faces.on( 'click', (e)=> {
-      if( ! this[_motionData].isAboutToStop ){
-
-        let target = $(e.currentTarget);
-        e.stopPropagation();
-        this.getTargetAngle(e);
-        this[_clickedId] = e.target.id;
-
-        let direction = this.shouldChangeDirection();
-        this[_motionData].isAboutToStop = true;
-        this[_easing] = this.computeEasing(direction);
-        this[_motionData].angleWhenClicked = this[_motionData].currentAngle;
-
-        target.css('cursor', 'initial');
-
-        $('body')
-          .css('cursor', 'pointer')
-          .one('click', (e) => {
-            this[_motionData].isAboutToStop = false;
-            target.css('cursor', 'pointer');
-            $(e.currentTarget).css('cursor', 'initial');
-            this.restoreAnimation();
-          });
-      }
-
-    })
-
-
-  }
-
-  restoreAnimation(){
+  [_restoreAnimation](){
     let targetPlane = this.faces
       .filter( ( i,el ) => $(el).attr('id') === this[_clickedId]);
       targetPlane.removeClass("focus");
@@ -291,11 +306,11 @@ class slider3d extends htmlElement{
 
   }
 
-  accelerate(){
+  [_accelerate](){
     this[_rotationSpeed] =  parseFloat( ( this[_rotationSpeed] + 0.005 ).toFixed(3) );
   }
 
-  updateContent(){
+  [_updateContent](){
 
     if ( this[_motionData].currentAngle < -10 && this[_motionData].currentAngle > -20 && this[_dynamicContent].willUpdate){
 
@@ -326,12 +341,12 @@ class slider3d extends htmlElement{
 
 }
 
-let myElement = new slider3d($('#top-layer'),1);
+let myElement = new slider3d($('#top-layer'),.7);
 
 $(() => {
 
 
   myElement.animateElement();
-  myElement.planeClickEvent();
+  myElement.faceClickEvent();
 
 });
