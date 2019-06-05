@@ -12,6 +12,7 @@ body {
 }
 
 #viewport{
+  transform: translateZ(-250px);
   transform-style: preserve-3d;
   position: relative;
   width: 1000px;
@@ -26,8 +27,8 @@ body {
     position: relative;
     width: 570px;
     height: 570px;
-    //background: rosybrown;
-    transform: translateZ(-250px) rotateY(0deg);
+    background: rosybrown;
+    transform: rotateY(0deg);
     transform-style: preserve-3d;
 
 

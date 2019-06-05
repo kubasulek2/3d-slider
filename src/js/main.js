@@ -83,13 +83,13 @@ class slider3d extends htmlElement{
       this[_motionData].currentAngle -= this[_rotationSpeed];
       this[_motionData].currentAngle = this[_motionData].currentAngle <= -360 ? 0 : this[_motionData].currentAngle;
 
-      this.element.css( "transform", ` translateZ(-250px) rotateY(${this[_motionData].currentAngle}deg)` );
+      this.element.css( "transform", `rotateY(${this[_motionData].currentAngle}deg)` );
 
       // targetAngle is set in click event, so after click event rotation will stop
 
       if( Math.round(this[_motionData].currentAngle) === this[_motionData].targetAngle ){
         this[_motionData].move = false;
-        this.element.css( "transform", ` translateZ(-250px) rotateY(${this[_motionData].targetAngle}deg)` )
+        this.element.css( "transform", `rotateY(${this[_motionData].targetAngle}deg)` )
       }
 
       window.requestAnimationFrame( ()=> this.animateElement() )
