@@ -110,6 +110,7 @@ class slider3d extends htmlElement{
 
     this.faces.on( 'click', (e)=> {
 
+      this.faces.css('transition', 'transform 1s ease-in-out .3s');
       if( ! this[_motionData].isAboutToStop ){
 
         let target = $(e.currentTarget);
